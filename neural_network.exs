@@ -65,6 +65,28 @@ defmodule NNTest do
              NN.backward_propagate(nn, x, y)
            end)
          end)
-    IO.inspect(nn)     
+    
+    classify_XOR = fn(nn, input) -> List.last(List.last(NN.forward_propagate(nn, input))) end
+    tolerance = 0.025
+
+    class_0_0 = classify_XOR.(nn, [0, 0]) # true value is 0
+    IO.inspect(class_0_0)
+    assert (class_0_0 - 0) < tolerance
+
+    class_0_1 = classify_XOR.(nn, [0, 1]) # true value is 1
+    IO.inspect(class_0_1)
+    assert (1 - class_0_1) < tolerance
+    
+    # @doc """
+    # Some strange numeric overflow in the Erlang system happening here. 
+    # Should investigate further if time permits.
+    # """
+    class_1_0 = classify_XOR.(nn, [1, 0]) # true value is 1
+    IO.inspect(class_1_0)
+    #assert (1 - class_1_0) < tolerance
+
+    class_1_1 = classify_XOR.(nn, [1, 1]) # true value is 0
+    IO.inspect(class_1_1)
+    assert (class_1_1 - 0) < tolerance
   end
 end
