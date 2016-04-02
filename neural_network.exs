@@ -15,7 +15,6 @@ defmodule NN do
   def forward_propagate(nn, inputs) do
     for layer <- nn do
       bias_input = inputs ++ [1]
-      IO.inspect layer
       outputs = for neuron <- layer, do: activate(neuron, bias_input)
       inputs = outputs
     end 
@@ -39,11 +38,11 @@ defmodule NN do
                     end  
 
     hidden_layer = Enum.map(Enum.with_index(List.first(nn)), fn {hidden_neuron, i} ->
-                       Enum.map(Enum.with_index(inputs ++ [1]), fn {input, j} ->
+                     Enum.map(Enum.with_index(inputs ++ [1]), fn {input, j} ->
                        Enum.at(hidden_neuron, j) - (Enum.at(hidden_deltas, i) * input) 
                      end)
                    end) 
-    [hidden_layer | output_layer]               
+    [hidden_layer | [output_layer]]               
   end
 end  
 
