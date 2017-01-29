@@ -34,9 +34,9 @@ defmodule KMeans do
     curr_assignments = for input <- inputs, do: classify(input, means)
     grouping = Enum.zip(inputs, curr_assignments)
             |> Enum.group_by(fn {_, assign_id} -> assign_id end)
-    IO.inspect grouping 
-    means = Enum.reduce(grouping, means, fn({i, g}, m) -> 
-              List.replace_at(means, i, vector_mean(g)) end )  
+    extract = fn(vecs) -> Enum.map(vecs, fn {vec, i} -> vec end) end
+    means = Enum.reduce(grouping, means, fn({i,vecs}, means) -> 
+              List.replace_at(means, i, vector_mean(extract.(vecs))) end)  
         
     assign(k, inputs, means, curr_assignments, prev_assignments == curr_assignments)
   end   
@@ -50,9 +50,6 @@ defmodule KMeansTest do
   use ExUnit.Case
 
   test "KMeans classify" do
-    IO.puts "-----------------"
-    IO.inspect KMeans.distance([2, 2], [3, 3])
-    IO.puts "-----------------"
     inputs = [[-14,-5],[13,13],[20,23],[-19,-11],[-9,-16],[21,27],[-49,15],
               [26,13],[-46,5],[-34,-1],[11,15],[-49,0],[-22,-16],[19,28],
               [-12,-8],[-13,-19],[-41,8],[-11,-6],[-25,-9],[-18,-3]]
@@ -67,16 +64,14 @@ defmodule KMeansTest do
     k = 3
     kmeans = KMeans.train(inputs, k)
     IO.inspect kmeans
-    assert kmeans == k3_means
-    IO.inspect KMeans.classify([10,10], kmeans)
-    #assert KMeans.classify([0,0], kmeans)  == 
+    assert Enum.all?(kmeans, fn(mean) -> Enum.member?(k3_means, mean) end)
+    assert KMeans.classify([0,0], kmeans)  == 2 
 
     k = 2
     kmeans = KMeans.train(inputs, k)
     IO.inspect kmeans
-    assert kmeans == k2_means
-    #IO.inspect KMeans.classify([10,10], kmeans)
-    #assert KMeans.classify([0,0], kmeans)  == 
+    assert Enum.all?(kmeans, fn(mean) -> Enum.member?(k2_means, mean) end)
+    assert KMeans.classify([0,0], kmeans)  == 1
   end
 end
 
