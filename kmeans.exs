@@ -64,14 +64,26 @@ defmodule KMeansTest do
     k = 3
     kmeans = KMeans.train(inputs, k)
     IO.inspect kmeans
+
     assert Enum.all?(kmeans, fn(mean) -> Enum.member?(k3_means, mean) end)
-    assert KMeans.classify([0,0], kmeans)  == 2 
+
+    assignment_0_0 = Enum.find_index(kmeans, fn el -> el == [-15.888888888888888, -10.333333333333332] end)
+    assert KMeans.classify([0,0], kmeans)  == assignment_0_0
+
+    assignment_10_10 = Enum.find_index(kmeans, fn el -> el == [18.333333333333332, 19.833333333333332] end)
+    assert KMeans.classify([10,10], kmeans)  == assignment_10_10
 
     k = 2
     kmeans = KMeans.train(inputs, k)
     IO.inspect kmeans
+
     assert Enum.all?(kmeans, fn(mean) -> Enum.member?(k2_means, mean) end)
-    assert KMeans.classify([0,0], kmeans)  == 1
+
+    assignment_0_0 = Enum.find_index(kmeans, fn el -> el == [-25.857142857142854, -4.714285714285714] end)
+    assert KMeans.classify([0,0], kmeans)  == assignment_0_0
+
+    assignment_10_10 = Enum.find_index(kmeans, fn el -> el == [18.333333333333332, 19.833333333333332] end)
+    assert KMeans.classify([10,10], kmeans)  == assignment_10_10
   end
 end
 
