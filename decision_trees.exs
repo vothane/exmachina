@@ -1,5 +1,5 @@
 defmodule DecisionTrees do
-
+  
   def entropy(class_probs) do
     Enum.map(class_probs, fn(p) -> -p * :math.log2(p) end)
     |> Enum.sum
@@ -15,6 +15,12 @@ defmodule DecisionTrees do
     Enum.map(data, fn {_, label} -> label end)
     |> DecisionTrees.class_probs
     |> DecisionTrees.entropy
+  end  
+
+  def partition_entropy(subsets) do
+    total_count = Enum.map(subsets, &Enum.count/1) |> Enum.sum              
+    Enum.map(subsets, fn(subset) -> data_entropy(subset) * Enum.count(subset) / total_count end)
+    |> Enum.sum
   end  
 end  
 
@@ -48,10 +54,20 @@ defmodule DecisionTreesTest do
     assert DecisionTrees.class_probs([false, false, false, true, true]) == [0.6, 0.4]
   end  
 
-  test "calculate entropy from labeled data", state do
+  test "calculate entropy for split labeled data", state do
     data  = state[:data]
     seniors = Enum.filter(data, fn({%{'level' => level}, _}) -> level == 'Senior' end)
+
     assert DecisionTrees.data_entropy(seniors) == 0.9709505944546686    
+  end
+
+  test "calculate entropy for split subsets", state do
+    data  = state[:data]
+    seniors = Enum.filter(data, fn({%{'level' => level}, _}) -> level == 'Senior' end)
+    mids = Enum.filter(data, fn({%{'level' => level}, _}) -> level == 'Mid' end)
+    juniors = Enum.filter(data, fn({%{'level' => level}, _}) -> level == 'Junior' end)
+
+    assert DecisionTrees.partition_entropy([seniors, mids, juniors]) == 0.6935361388961919    
   end
 end
 
