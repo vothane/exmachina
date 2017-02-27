@@ -44,17 +44,28 @@ defmodule DecisionTrees do
                   end  
     num_inputs = Enum.count(data)
     num_trues = Enum.filter(data, fn {_, bool} -> bool == true end) |> Enum.count
-    num_falses = num_inputs - num_trues
+    num_false = num_inputs - num_trues
 
     cond do
       num_trues == 0 -> false
-      num_falses == 0 -> true
-      Enum.empty?(split_attrs) -> num_trues >= num_falses
+      num_false == 0 -> true
+      Enum.empty?(split_attrs) -> num_trues >= num_false
       true ->
         {best_attr, subset_attrs, partitions} = split_tree(data, split_attrs) 
         subtrees = Enum.reduce(partitions, Map.new, fn({attr, subset}, map) -> Map.put(map, attr, DecisionTrees.build_tree(subset, subset_attrs)) end)
+        subtrees = Map.put(subtrees, nil, num_trues > num_false)
         {best_attr, subtrees}
     end 
+  end  
+
+  def classify(tree, inputs) do
+    cond do
+      Enum.member?([true, false], tree) -> tree
+      true -> {attr, subtree} = tree
+              subtree_key = Map.get(inputs, attr, nil)
+              subtree = Map.get(subtree, subtree_key)
+              classify(subtree, inputs)  
+    end            
   end  
 end  
 
@@ -107,10 +118,51 @@ defmodule DecisionTreesTest do
   test "building trees", state do
     data  = state[:data]
 
-    assert DecisionTrees.build_tree(data) == {'level',
-                                               %{'Junior' => {'phd', %{'no' => true, 'yes' => false}},
-                                                 'Mid' => true,
-                                                 'Senior' => {'tweets', %{'no' => false, 'yes' => true}}}}  
+    assert DecisionTrees.build_tree(data) == {'level', 
+                                               %{'Mid' => true, 
+                                                 'Junior' => {'phd', %{'no' => true, 'yes' => false, nil => true}}, 
+                                                 'Senior' => {'tweets', %{'no' => false, 'yes' => true, nil => false}}, 
+                                                 nil => true}}
   end
+
+  
+  test "classify with id3 trees", state do
+    data  = state[:data]
+    tree =  DecisionTrees.build_tree(data)
+
+    # note attributes 'level' and 'phd' are the ones with 
+    # significant information gain in this case
+    junior_with_phd = DecisionTrees.classify(tree, %{'level' => 'Junior',
+                                                     'lang' => 'Java',
+                                                     'tweets' => 'yes',
+                                                     'phd' => 'yes'})
+  
+    # not at all likely that a junior will have a phd so false
+    assert junior_with_phd == false    
+
+    junior_without_phd = DecisionTrees.classify(tree, %{'level' => 'Junior',
+                                                        'lang' => 'Java',
+                                                        'tweets' => 'yes',
+                                                        'phd' => 'no'})
+
+    # junior will most likely have no phd so true
+    assert junior_without_phd == true    
+
+    senior_with_phd = DecisionTrees.classify(tree, %{'level' => 'Senior',
+                                                     'lang' => 'Java',
+                                                     'tweets' => 'yes',
+                                                     'phd' => 'yes'})
+  
+    # a phd will be most likely be at the senior level so true
+    assert senior_with_phd == true    
+
+    senior_without_phd = DecisionTrees.classify(tree, %{'level' => 'Senior',
+                                                        'lang' => 'Java',
+                                                        'tweets' => 'yes',
+                                                        'phd' => 'no'})
+
+    # most senior levels will most likely have no phd so true
+    assert senior_without_phd == true    
+  end  
 end
 
