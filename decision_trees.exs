@@ -21,6 +21,40 @@ defmodule DecisionTrees do
     total_count = Enum.map(subsets, &Enum.count/1) |> Enum.sum              
     Enum.map(subsets, fn(subset) -> data_entropy(subset) * Enum.count(subset) / total_count end)
     |> Enum.sum
+  end
+
+  def partition_entropy_by(data, attr) do
+    Enum.group_by(data, fn {%{^attr => v}, _} -> v end) 
+    |> Map.values
+    |> DecisionTrees.partition_entropy
+  end
+
+  def split_tree(data, split_attrs) do
+    best_attr = Enum.min_by(split_attrs, &(partition_entropy_by(data, &1))) 
+    partitions = Enum.group_by(data, fn {%{^best_attr => v}, _} -> v end)
+    attrs = List.delete(split_attrs, best_attr)
+    {best_attr, attrs, partitions}
+  end
+
+  def build_tree(data, attrs \\ nil) do
+    split_attrs = case attrs do
+                    nil -> {x, _} = List.first(data)
+                           Map.keys(x)
+                    attrs -> attrs       
+                  end  
+    num_inputs = Enum.count(data)
+    num_trues = Enum.filter(data, fn {_, bool} -> bool == true end) |> Enum.count
+    num_falses = num_inputs - num_trues
+
+    cond do
+      num_trues == 0 -> false
+      num_falses == 0 -> true
+      Enum.empty?(split_attrs) -> num_trues >= num_falses
+      true ->
+        {best_attr, subset_attrs, partitions} = split_tree(data, split_attrs) 
+        subtrees = Enum.reduce(partitions, Map.new, fn({attr, subset}, map) -> Map.put(map, attr, DecisionTrees.build_tree(subset, subset_attrs)) end)
+        {best_attr, subtrees}
+    end 
   end  
 end  
 
@@ -68,6 +102,15 @@ defmodule DecisionTreesTest do
     juniors = Enum.filter(data, fn({%{'level' => level}, _}) -> level == 'Junior' end)
 
     assert DecisionTrees.partition_entropy([seniors, mids, juniors]) == 0.6935361388961919    
+  end
+
+  test "building trees", state do
+    data  = state[:data]
+
+    assert DecisionTrees.build_tree(data) == {'level',
+                                               %{'Junior' => {'phd', %{'no' => true, 'yes' => false}},
+                                                 'Mid' => true,
+                                                 'Senior' => {'tweets', %{'no' => false, 'yes' => true}}}}  
   end
 end
 
